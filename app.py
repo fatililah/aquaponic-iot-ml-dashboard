@@ -68,6 +68,8 @@ AUTOMATION_LOG_COLUMNS = [
     "timestamp",
     "cycle",
     "scenario_name",
+    "data_packet_id",
+    "last_packet_timestamp",
     "ph_before",
     "ph_after_simulated",
     "delta_ph",
@@ -409,8 +411,12 @@ def append_automation_log(result: dict[str, Any]) -> None:
     ensure_automation_log_file()
     row = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), **result}
     log_df = pd.read_csv(AUTOMATION_LOG_PATH)
-    updated_log = pd.concat([log_df, pd.DataFrame([row])[AUTOMATION_LOG_COLUMNS]], ignore_index=True)
-    updated_log.to_csv(AUTOMATION_LOG_PATH, index=False)
+    new_row_df = pd.DataFrame([row])
+    updated_log = pd.concat([log_df, new_row_df], ignore_index=True)
+    for column in AUTOMATION_LOG_COLUMNS:
+        if column not in updated_log.columns:
+            updated_log[column] = ""
+    updated_log[AUTOMATION_LOG_COLUMNS].to_csv(AUTOMATION_LOG_PATH, index=False)
 
 
 def get_current_result() -> dict[str, Any] | None:
@@ -488,6 +494,14 @@ def virtual_actuator_state(result: dict[str, Any]) -> tuple[str, str, str]:
     return "OFF", "OFF", "Monitoring Only"
 
 
+def virtual_relay_state(pump_state: str) -> str:
+    if pump_state == "ON":
+        return "ON"
+    if "BLOCKED" in pump_state:
+        return "BLOCKED / OFF"
+    return "OFF"
+
+
 def simulate_recheck_ph(ph_before: float, action: str, pump_status: str) -> tuple[float, float, bool]:
     """Simulate pH recheck after virtual dosing or monitoring drift."""
     target_ph = 6.9
@@ -513,6 +527,8 @@ def build_automation_cycle_result(
 ) -> dict[str, Any]:
     """Run one virtual automation cycle from virtual sensor to recheck pH."""
     ph_before = float(sensor_state["ph"])
+    packet_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    packet_id = f"VHW-{cycle_number:04d}-{datetime.now().strftime('%H%M%S')}"
     ml_result = simulate_case(sensor_state, scenario_name)
     append_log(ml_result)
     acid_pump, base_pump, automation_status = virtual_actuator_state(ml_result)
@@ -524,6 +540,8 @@ def build_automation_cycle_result(
     cycle_result = {
         "cycle": cycle_number,
         "scenario_name": scenario_name,
+        "data_packet_id": packet_id,
+        "last_packet_timestamp": packet_timestamp,
         "ph_before": ph_before,
         "ph_after_simulated": ph_after,
         "delta_ph": delta_ph,
@@ -922,9 +940,125 @@ def render_pump_panel(title: str, state: str) -> None:
     )
 
 
+def render_virtual_hardware_layer(latest: dict[str, Any]) -> None:
+    st.subheader("Virtual Hardware Layer")
+    st.caption(
+        "Komponen berikut adalah virtual hardware layer untuk simulasi akademik, bukan koneksi hardware fisik."
+    )
+
+    controller_col, sensor_col, relay_col = st.columns(3)
+    with controller_col:
+        st.markdown("#### Virtual ESP32 / Edge Controller")
+        controller_df = pd.DataFrame(
+            [
+                ["Controller status", "Simulated Online"],
+                ["WiFi status", "Simulated Connected"],
+                ["Communication mode", "Simulated MQTT/Serial"],
+                ["Last packet timestamp", latest.get("last_packet_timestamp", "-")],
+                ["Data packet ID", latest.get("data_packet_id", "-")],
+            ],
+            columns=["item", "status"],
+        )
+        st.dataframe(controller_df, hide_index=True, width="stretch")
+
+    with sensor_col:
+        st.markdown("#### Virtual Sensor Node")
+        sensor_df = pd.DataFrame(
+            [
+                ["Virtual pH Sensor", f"{latest['ph_after_simulated']:.3f} pH"],
+                ["Virtual Temperature Sensor", f"{float(latest['temperature_c']):.2f} C"],
+                ["Virtual Water Level Sensor", f"{float(latest['water_level_pct']):.2f}%"],
+                [
+                    "Virtual Nitrogen Input",
+                    f"NH3 {float(latest['ammonia_ppm']):.3f}, NO2 {float(latest['nitrite_ppm']):.3f}, NO3 {float(latest['nitrate_ppm']):.2f}",
+                ],
+                ["Sensor status", latest["sensor_status"]],
+            ],
+            columns=["virtual component", "reading"],
+        )
+        st.dataframe(sensor_df, hide_index=True, width="stretch")
+
+    with relay_col:
+        st.markdown("#### Virtual Relay & Pump")
+        relay_df = pd.DataFrame(
+            [
+                ["Virtual Relay Acid Pump", virtual_relay_state(latest["virtual_acid_pump"])],
+                ["Virtual Relay Base Pump", virtual_relay_state(latest["virtual_base_pump"])],
+                ["Virtual Acid Pump status", latest["virtual_acid_pump"]],
+                ["Virtual Base Pump status", latest["virtual_base_pump"]],
+                ["Pump command source", "Safety Rule Controller"],
+                ["Pump status", latest["pump_status"].upper()],
+            ],
+            columns=["virtual component", "status"],
+        )
+        st.dataframe(relay_df, hide_index=True, width="stretch")
+
+    readiness_df = pd.DataFrame(
+        [
+            ["ESP32/Arduino", "planned physical controller"],
+            ["pH sensor", "planned analog input"],
+            ["Temperature sensor", "planned digital input"],
+            ["Water level sensor", "planned analog/digital input"],
+            ["Relay module", "planned output actuator driver"],
+            ["Acid/Base pump", "planned actuator"],
+            ["MQTT/Serial communication", "planned data bridge"],
+        ],
+        columns=["hardware component", "integration readiness"],
+    )
+    st.markdown("#### Hardware Readiness Table")
+    st.dataframe(readiness_df, hide_index=True, width="stretch")
+
+
+def render_simulated_dosing_panel(latest: dict[str, Any]) -> None:
+    st.subheader("Simulated Dosing & Recheck pH")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("ph_before", f"{latest['ph_before']:.3f}")
+    with c2:
+        st.metric("ph_after_simulated", f"{latest['ph_after_simulated']:.3f}")
+    with c3:
+        st.metric("delta_ph", f"{latest['delta_ph']:+.3f}")
+    with c4:
+        st.metric("dosing_success", str(latest["dosing_success"]))
+
+
+def build_idle_automation_snapshot() -> dict[str, Any]:
+    sensor_state = st.session_state.get("current_virtual_sensor_state", PRESET_SCENARIOS["normal_condition"])
+    ph_value = float(sensor_state["ph"])
+    return {
+        "cycle": int(st.session_state.get("automation_cycle_count", 0)),
+        "scenario_name": "idle_preview",
+        "data_packet_id": "VHW-IDLE",
+        "last_packet_timestamp": "-",
+        "ph_before": ph_value,
+        "ph_after_simulated": ph_value,
+        "delta_ph": 0.0,
+        "dosing_success": False,
+        "temperature_c": sensor_state["temperature_c"],
+        "water_level_pct": sensor_state["water_level_pct"],
+        "ammonia_ppm": sensor_state["ammonia_ppm"],
+        "nitrite_ppm": sensor_state["nitrite_ppm"],
+        "nitrate_ppm": sensor_state["nitrate_ppm"],
+        "sensor_status": sensor_state["sensor_status"],
+        "confidence_score": sensor_state["confidence_score"],
+        "predicted_water_quality_status": "Not run",
+        "predicted_dosing_action": "Not run",
+        "safety_status": "Not run",
+        "safety_reason": "waiting_for_simulation",
+        "pump_status": "off",
+        "virtual_acid_pump": "OFF",
+        "virtual_base_pump": "OFF",
+        "automation_status": "Monitoring Only",
+        "dashboard_alert": "Simulasi belum dijalankan",
+    }
+
+
 def render_automation_visuals(history: list[dict[str, Any]]) -> None:
     if not history:
         st.info("Belum ada siklus otomasi. Pilih skenario awal lalu tekan Start Simulation.")
+        idle_snapshot = build_idle_automation_snapshot()
+        render_virtual_hardware_layer(idle_snapshot)
+        render_simulated_dosing_panel(idle_snapshot)
         return
 
     latest = history[-1]
@@ -949,6 +1083,9 @@ def render_automation_visuals(history: list[dict[str, Any]]) -> None:
         st.metric("Automation Status", latest["automation_status"])
         st.caption(latest["dashboard_alert"])
 
+    render_virtual_hardware_layer(latest)
+    render_simulated_dosing_panel(latest)
+
     history_df = pd.DataFrame(history)
     chart_df = history_df.set_index("cycle")
     chart_col1, chart_col2 = st.columns(2)
@@ -968,16 +1105,16 @@ def render_simulated_automation_page() -> None:
     st.markdown(
         """
         <div class="warn-box">
-        Mode ini adalah simulasi otomasi berbasis digital twin. Sensor dan pompa yang ditampilkan adalah virtual,
-        bukan koneksi hardware fisik. Dashboard tetap proof of concept akademik dan belum tervalidasi sebagai
-        sistem kontrol lapangan.
+        Mode ini adalah simulasi otomasi berbasis digital twin. Komponen ESP32, sensor, relay, dan pompa pada
+        dashboard ini merupakan virtual hardware layer untuk simulasi akademik. Belum ada koneksi hardware fisik
+        pada tahap ini.
         </div>
         """,
         unsafe_allow_html=True,
     )
     st.info(
-        "Alur real-time virtual: Virtual Sensor Reading -> ML Prediction -> Safety Rule Controller -> "
-        "Virtual Pump Decision -> Simulated Dosing -> Recheck pH -> Log."
+        "Alur real-time virtual: Virtual Sensor -> Virtual ESP32 -> ML Prediction -> Safety Rule Controller -> "
+        "Virtual Relay -> Virtual Pump -> Recheck pH -> Log."
     )
 
     selected_scenario = st.selectbox(

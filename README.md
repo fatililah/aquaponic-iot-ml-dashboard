@@ -140,9 +140,11 @@ Menu **Simulated Automation** menjalankan simulasi end-to-end:
 
 ```text
 Virtual Sensor Reading
+-> Virtual ESP32 / Edge Controller
 -> ML Prediction
 -> Safety Rule Controller
--> Virtual Pump Decision
+-> Virtual Relay
+-> Virtual Pump
 -> Simulated Dosing
 -> Recheck pH
 -> Log
@@ -187,6 +189,48 @@ Log keputusan biasa tetap disimpan ke:
 ```text
 logs/dashboard_decision_log.csv
 ```
+
+## Virtual Hardware Layer and Hardware Integration Readiness
+
+Virtual Hardware Layer adalah bagian dari menu **Simulated Automation / Digital Twin Mode**, bukan menu terpisah. Layer ini memperlihatkan bagaimana sistem akan terlihat jika suatu saat dihubungkan ke hardware, tetapi pada dashboard saat ini semuanya masih virtual dan simulated.
+
+Panel yang ditampilkan:
+
+- **Virtual ESP32 / Edge Controller**
+  - Controller status: Simulated Online
+  - WiFi status: Simulated Connected
+  - Communication mode: Simulated MQTT/Serial
+  - Last packet timestamp
+  - Data packet ID
+
+- **Virtual Sensor Node**
+  - Virtual pH Sensor
+  - Virtual Temperature Sensor
+  - Virtual Water Level Sensor
+  - Virtual Nitrogen Input
+  - Sensor status
+
+- **Virtual Relay & Pump**
+  - Virtual Relay Acid Pump
+  - Virtual Relay Base Pump
+  - Virtual Acid Pump status
+  - Virtual Base Pump status
+  - Pump command source: Safety Rule Controller
+  - Pump status: ON/OFF/BLOCKED
+
+Hardware readiness table menjelaskan rencana pengembangan:
+
+| Komponen | Status kesiapan |
+|---|---|
+| ESP32/Arduino | planned physical controller |
+| pH sensor | planned analog input |
+| Temperature sensor | planned digital input |
+| Water level sensor | planned analog/digital input |
+| Relay module | planned output actuator driver |
+| Acid/Base pump | planned actuator |
+| MQTT/Serial communication | planned data bridge |
+
+Safety Rule Controller tetap wajib sebelum Virtual Relay atau Virtual Pump ON. Jika `safety_status = safety_fail`, relay dan pompa virtual akan OFF/BLOCKED. Jika `safety_status = safety_pass` dan `pump_status = on`, barulah pompa virtual boleh ON.
 
 ## Pengembangan Hardware Berikutnya
 
