@@ -1,0 +1,36 @@
+column_name,data_type,unit,description,source,mandatory,example_value,allowed_values_or_range
+data_id,string,-,Unique synthetic record identifier,generated,yes,AQD-000001,unique
+timestamp,datetime,-,Sampling timestamp at 15-minute interval,generated,yes,2026-03-01 00:00:00,YYYY-MM-DD HH:MM:SS
+dataset_version,string,-,Dataset schema and generation version,config,yes,v1.0,v1.0
+input_source,string,-,Origin of the row,generated,yes,synthetic,synthetic
+scenario_type,category,-,Synthetic operating scenario,generated,yes,sensor_error,"normal_stable, ph_low_mild, ph_low_moderate, ph_low_extreme, ph_high_mild, ph_high_moderate, ph_high_extreme, nitrogen_warning, low_water_level, sensor_error, post_dosing_success, post_dosing_failed"
+sensor_id,string,-,Synthetic sensor node identifier,generated,yes,AQ-SENSOR-05,AQ-SENSOR-01 to AQ-SENSOR-08
+ph,float,pH,Measured pH before decision,synthetic sensor,yes,8.54,4.5 to 9.5
+temperature_c,float,deg C,Water temperature,synthetic sensor,yes,25.17,15 to 40
+water_level_pct,float,%,Tank water level percentage,synthetic sensor,yes,96.4,0 to 100
+ammonia_ppm,float,ppm,Manual or synthetic ammonia input,manual/synthetic,yes,0.214,>= 0
+nitrite_ppm,float,ppm,Manual or synthetic nitrite input,manual/synthetic,yes,0.044,>= 0
+nitrate_ppm,float,ppm,Manual or synthetic nitrate input,manual/synthetic,yes,46.2,>= 0
+sensor_status,category,-,Sensor health state,generated,yes,perlu_kalibrasi,"valid, error, perlu_kalibrasi"
+ph_before,float,pH,pH value before dosing or recheck,derived,yes,8.54,4.5 to 9.5
+time_since_last_dosing_min,integer,minutes,Elapsed time since last dosing cycle,generated,yes,152,>= 0
+dosing_cycle_count,integer,count,Consecutive dosing cycles before this decision,generated,yes,0,0 to 3+
+mixing_time_min,integer,minutes,Mixing wait time before pH recheck,generated,yes,5,5 to 10
+confidence_score,float,score,Classifier confidence proxy,generated,yes,0.826,0 to 1
+water_quality_status,category,-,Target for Water Quality Classifier,rule label,yes,Darurat,"Normal, Waspada, Kritis, Darurat"
+recommended_action,category,-,Pre-safety dosing recommendation,rule label,yes,manual_check,dosing action classes
+dosing_action,category,-,Target for Dosing Action Classifier,rule label,yes,manual_check,dosing action classes
+dosing_type,category,-,Physical dosing type,derived,yes,manual,"none, acid, base, manual"
+pump_duration_sec,integer,seconds,Requested pump activation duration,derived,yes,0,0 to max_pump_duration_sec
+max_pump_duration_sec,integer,seconds,Maximum allowed pump duration,config,yes,5,5
+cooldown_time_min,integer,minutes,Required cooldown between dosing cycles,config,yes,10,10
+safety_status,category,-,Safety Rule Controller result,rule label,yes,safety_fail,"safety_pass, safety_fail"
+safety_reason,category,-,Short reason from safety controller,rule label,yes,sensor_error,predefined reason codes
+pump_status,category,-,Final pump state after safety controller,derived,yes,blocked,"on, off, blocked"
+ph_after,float,pH,Measured pH after mixing/recheck simulation,simulated,yes,8.53,4.5 to 9.5
+delta_ph,float,pH,ph_after minus ph_before,derived,yes,-0.01,-5 to 5
+dosing_success,boolean,-,Whether pH moved toward target without unsafe behavior,derived,yes,False,"True, False"
+overdosing_risk,category,-,Risk category for pH correction magnitude,derived,yes,sedang,"rendah, sedang, tinggi"
+manual_override,boolean,-,Operator override or manual intervention indicator,generated,yes,True,"True, False"
+dominant_feature,category,-,Rule-based feature most responsible for the label,derived,yes,sensor_status,"ph, water_level_pct, ammonia_ppm, nitrite_ppm, nitrate_ppm, temperature_c, sensor_status"
+dashboard_alert,string,-,Short message for dashboard display,derived,yes,Sensor perlu kalibrasi,predefined alert text

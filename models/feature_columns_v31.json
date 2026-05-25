@@ -1,0 +1,35 @@
+{
+  "version": "v3.1",
+  "main_features": [
+    "ph",
+    "temperature_c",
+    "water_level_pct",
+    "ammonia_ppm",
+    "nitrite_ppm",
+    "nitrate_ppm",
+    "sensor_status",
+    "time_since_last_dosing_min",
+    "dosing_cycle_count",
+    "confidence_score"
+  ],
+  "excluded_leakage_columns": [
+    "ph_after",
+    "delta_ph",
+    "dosing_success",
+    "safety_status",
+    "pump_status",
+    "dashboard_alert",
+    "recommended_action",
+    "dosing_type",
+    "pump_duration_sec",
+    "overdosing_risk",
+    "safety_reason",
+    "manual_override"
+  ],
+  "targets": [
+    "water_quality_status",
+    "dosing_action"
+  ],
+  "water_quality_model": "RandomForestClassifier(max_depth=3)",
+  "dosing_action_model": "DecisionTreeClassifier(max_depth=3)"
+}
