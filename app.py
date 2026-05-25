@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import random
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -26,6 +28,7 @@ FEATURE_COLUMNS_PATH = MODEL_DIR / "feature_columns_v31.json"
 FINAL_REPORT_PATH = REPORTS_DIR / "final_model_report_v31_realistic_balanced.md"
 SIMULATION_REPORT_PATH = REPORTS_DIR / "simulation_decision_v31.md"
 LOG_PATH = LOGS_DIR / "dashboard_decision_log.csv"
+AUTOMATION_LOG_PATH = LOGS_DIR / "automation_cycle_log.csv"
 
 DEFAULT_FEATURES = [
     "ph",
@@ -58,6 +61,32 @@ LOG_COLUMNS = [
     "safety_status",
     "safety_reason",
     "pump_status",
+    "dashboard_alert",
+]
+
+AUTOMATION_LOG_COLUMNS = [
+    "timestamp",
+    "cycle",
+    "scenario_name",
+    "ph_before",
+    "ph_after_simulated",
+    "delta_ph",
+    "dosing_success",
+    "temperature_c",
+    "water_level_pct",
+    "ammonia_ppm",
+    "nitrite_ppm",
+    "nitrate_ppm",
+    "sensor_status",
+    "confidence_score",
+    "predicted_water_quality_status",
+    "predicted_dosing_action",
+    "safety_status",
+    "safety_reason",
+    "pump_status",
+    "virtual_acid_pump",
+    "virtual_base_pump",
+    "automation_status",
     "dashboard_alert",
 ]
 
@@ -216,6 +245,23 @@ def configure_page() -> None:
             font-size: .85rem;
             text-align: center;
         }
+        .pump-panel {
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            padding: 1rem;
+            background: #ffffff;
+            min-height: 110px;
+        }
+        .pump-title {
+            color: #52606d;
+            font-size: .8rem;
+            text-transform: uppercase;
+        }
+        .pump-state {
+            font-size: 1.45rem;
+            font-weight: 800;
+            margin-top: .25rem;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -249,6 +295,12 @@ def ensure_log_file() -> None:
     LOGS_DIR.mkdir(exist_ok=True)
     if not LOG_PATH.exists():
         pd.DataFrame(columns=LOG_COLUMNS).to_csv(LOG_PATH, index=False)
+
+
+def ensure_automation_log_file() -> None:
+    LOGS_DIR.mkdir(exist_ok=True)
+    if not AUTOMATION_LOG_PATH.exists():
+        pd.DataFrame(columns=AUTOMATION_LOG_COLUMNS).to_csv(AUTOMATION_LOG_PATH, index=False)
 
 
 def apply_safety_rule(sensor_input: dict[str, Any], predicted_dosing_action: str) -> dict[str, str]:
@@ -353,8 +405,156 @@ def append_log(result: dict[str, Any]) -> None:
     updated_log.to_csv(LOG_PATH, index=False)
 
 
+def append_automation_log(result: dict[str, Any]) -> None:
+    ensure_automation_log_file()
+    row = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), **result}
+    log_df = pd.read_csv(AUTOMATION_LOG_PATH)
+    updated_log = pd.concat([log_df, pd.DataFrame([row])[AUTOMATION_LOG_COLUMNS]], ignore_index=True)
+    updated_log.to_csv(AUTOMATION_LOG_PATH, index=False)
+
+
 def get_current_result() -> dict[str, Any] | None:
     return st.session_state.get("latest_result")
+
+
+def clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
+def init_automation_state(scenario_name: str) -> None:
+    st.session_state["current_virtual_sensor_state"] = PRESET_SCENARIOS[scenario_name].copy()
+    st.session_state["automation_history"] = []
+    st.session_state["latest_automation_result"] = None
+    st.session_state["automation_cycle_count"] = 0
+    st.session_state["automation_running"] = False
+
+
+def ensure_automation_session_state(default_scenario: str) -> None:
+    if "automation_history" not in st.session_state:
+        init_automation_state(default_scenario)
+    if "current_virtual_sensor_state" not in st.session_state:
+        st.session_state["current_virtual_sensor_state"] = PRESET_SCENARIOS[default_scenario].copy()
+    if "automation_cycle_count" not in st.session_state:
+        st.session_state["automation_cycle_count"] = 0
+    if "automation_running" not in st.session_state:
+        st.session_state["automation_running"] = False
+
+
+def evolve_virtual_sensor_state(state: dict[str, Any], scenario_name: str) -> dict[str, Any]:
+    """Create the next virtual sensor reading with small realistic drift."""
+    next_state = state.copy()
+    next_state["ph"] = round(clamp(float(next_state["ph"]) + random.uniform(-0.035, 0.035), 4.5, 9.5), 3)
+    next_state["temperature_c"] = round(
+        clamp(float(next_state["temperature_c"]) + random.uniform(-0.12, 0.12), 15.0, 40.0),
+        2,
+    )
+    next_state["water_level_pct"] = round(
+        clamp(float(next_state["water_level_pct"]) + random.uniform(-0.45, 0.25), 0.0, 100.0),
+        2,
+    )
+    next_state["ammonia_ppm"] = round(
+        clamp(float(next_state["ammonia_ppm"]) + random.uniform(-0.008, 0.010), 0.0, 2.5),
+        3,
+    )
+    next_state["nitrite_ppm"] = round(
+        clamp(float(next_state["nitrite_ppm"]) + random.uniform(-0.006, 0.008), 0.0, 2.5),
+        3,
+    )
+    next_state["nitrate_ppm"] = round(
+        clamp(float(next_state["nitrate_ppm"]) + random.uniform(-0.8, 1.0), 0.0, 260.0),
+        2,
+    )
+    next_state["confidence_score"] = round(
+        clamp(float(next_state["confidence_score"]) + random.uniform(-0.025, 0.025), 0.0, 1.0),
+        3,
+    )
+    next_state["time_since_last_dosing_min"] = int(next_state["time_since_last_dosing_min"]) + 2
+    next_state["dosing_cycle_count"] = int(next_state["dosing_cycle_count"])
+    next_state["sensor_status"] = "error" if scenario_name == "sensor_error_condition" else "valid"
+    return next_state
+
+
+def virtual_actuator_state(result: dict[str, Any]) -> tuple[str, str, str]:
+    action = result["predicted_dosing_action"]
+    pump_status = result["pump_status"]
+    if pump_status == "blocked":
+        return "BLOCKED / OFF", "BLOCKED / OFF", "Pump Blocked"
+    if pump_status == "off":
+        return "OFF", "OFF", "Monitoring Only"
+    if pump_status == "on" and "acid" in action:
+        return "ON", "OFF", "Dosing Active"
+    if pump_status == "on" and "base" in action:
+        return "OFF", "ON", "Dosing Active"
+    return "OFF", "OFF", "Monitoring Only"
+
+
+def simulate_recheck_ph(ph_before: float, action: str, pump_status: str) -> tuple[float, float, bool]:
+    """Simulate pH recheck after virtual dosing or monitoring drift."""
+    target_ph = 6.9
+    before_distance = abs(ph_before - target_ph)
+    if pump_status == "on" and "acid" in action:
+        change = -min(max(ph_before - target_ph, 0.03) * 0.35 + random.uniform(0.015, 0.055), 0.22)
+    elif pump_status == "on" and "base" in action:
+        change = min(max(target_ph - ph_before, 0.03) * 0.35 + random.uniform(0.015, 0.055), 0.22)
+    else:
+        change = random.uniform(-0.018, 0.018)
+
+    ph_after = round(clamp(ph_before + change, 4.5, 9.5), 3)
+    delta_ph = round(ph_after - ph_before, 3)
+    after_distance = abs(ph_after - target_ph)
+    dosing_success = after_distance < before_distance if pump_status == "on" else abs(delta_ph) <= 0.03
+    return ph_after, delta_ph, bool(dosing_success)
+
+
+def build_automation_cycle_result(
+    scenario_name: str,
+    cycle_number: int,
+    sensor_state: dict[str, Any],
+) -> dict[str, Any]:
+    """Run one virtual automation cycle from virtual sensor to recheck pH."""
+    ph_before = float(sensor_state["ph"])
+    ml_result = simulate_case(sensor_state, scenario_name)
+    append_log(ml_result)
+    acid_pump, base_pump, automation_status = virtual_actuator_state(ml_result)
+    ph_after, delta_ph, dosing_success = simulate_recheck_ph(
+        ph_before,
+        ml_result["predicted_dosing_action"],
+        ml_result["pump_status"],
+    )
+    cycle_result = {
+        "cycle": cycle_number,
+        "scenario_name": scenario_name,
+        "ph_before": ph_before,
+        "ph_after_simulated": ph_after,
+        "delta_ph": delta_ph,
+        "dosing_success": dosing_success,
+        "temperature_c": sensor_state["temperature_c"],
+        "water_level_pct": sensor_state["water_level_pct"],
+        "ammonia_ppm": sensor_state["ammonia_ppm"],
+        "nitrite_ppm": sensor_state["nitrite_ppm"],
+        "nitrate_ppm": sensor_state["nitrate_ppm"],
+        "sensor_status": sensor_state["sensor_status"],
+        "confidence_score": sensor_state["confidence_score"],
+        "predicted_water_quality_status": ml_result["predicted_water_quality_status"],
+        "predicted_dosing_action": ml_result["predicted_dosing_action"],
+        "safety_status": ml_result["safety_status"],
+        "safety_reason": ml_result["safety_reason"],
+        "pump_status": ml_result["pump_status"],
+        "virtual_acid_pump": acid_pump,
+        "virtual_base_pump": base_pump,
+        "automation_status": automation_status,
+        "dashboard_alert": ml_result["dashboard_alert"],
+    }
+
+    next_sensor_state = sensor_state.copy()
+    next_sensor_state["ph"] = ph_after
+    if ml_result["pump_status"] == "on":
+        next_sensor_state["dosing_cycle_count"] = min(int(next_sensor_state["dosing_cycle_count"]) + 1, 10)
+        next_sensor_state["time_since_last_dosing_min"] = 0
+    st.session_state["current_virtual_sensor_state"] = next_sensor_state
+    st.session_state["latest_automation_result"] = cycle_result
+    st.session_state["latest_result"] = ml_result
+    return cycle_result
 
 
 def status_color(value: str) -> str:
@@ -429,7 +629,7 @@ def render_overview() -> None:
     ]
     architecture_path = next((path for path in architecture_candidates if path.exists()), None)
     if architecture_path:
-        st.image(str(architecture_path), caption="Arsitektur fisik/sistem aquaponic", use_container_width=True)
+        st.image(str(architecture_path), caption="Arsitektur fisik/sistem aquaponic", width="stretch")
     else:
         st.caption("Gambar arsitektur belum ditemukan di folder assets/. Dashboard tetap dapat dijalankan.")
 
@@ -563,7 +763,7 @@ def render_prediction_page() -> None:
 
     render_prediction_summary(result)
     st.subheader("Input yang Digunakan Model")
-    st.dataframe(pd.DataFrame([{key: result[key] for key in DEFAULT_FEATURES}]), use_container_width=True)
+    st.dataframe(pd.DataFrame([{key: result[key] for key in DEFAULT_FEATURES}]), width="stretch")
     st.markdown(
         """
         <div class="info-box">
@@ -593,7 +793,7 @@ def render_safety_page() -> None:
             }
         ]
     )
-    st.dataframe(active_rule, use_container_width=True)
+    st.dataframe(active_rule, width="stretch")
 
     st.subheader("Daftar Safety Rule Controller")
     rules = pd.DataFrame(
@@ -613,7 +813,7 @@ def render_safety_page() -> None:
         ],
         columns=["condition", "safety_reason", "pump_status"],
     )
-    st.dataframe(rules, use_container_width=True)
+    st.dataframe(rules, width="stretch")
 
 
 def render_evaluation_page() -> None:
@@ -630,7 +830,7 @@ def render_evaluation_page() -> None:
         st.metric("Test rows", f"{test_rows:,}")
 
     st.subheader("Model Performance")
-    st.dataframe(PERFORMANCE_INFO, use_container_width=True)
+    st.dataframe(PERFORMANCE_INFO, width="stretch")
 
     df = load_dataset()
     if not df.empty:
@@ -643,7 +843,7 @@ def render_evaluation_page() -> None:
             st.bar_chart(df["dosing_action"].value_counts().sort_index())
 
         with st.expander("Preview dataset v3.1"):
-            st.dataframe(df.head(100), use_container_width=True)
+            st.dataframe(df.head(100), width="stretch")
     else:
         st.warning("Dataset v3.1 tidak ditemukan di folder data/.")
 
@@ -658,7 +858,9 @@ def render_evaluation_page() -> None:
 def render_data_log_page() -> None:
     st.header("Data Log")
     ensure_log_file()
+    ensure_automation_log_file()
     log_df = pd.read_csv(LOG_PATH)
+    automation_log_df = pd.read_csv(AUTOMATION_LOG_PATH)
     st.write("Setiap hasil simulasi dari dashboard disimpan otomatis ke log CSV.")
 
     c1, c2 = st.columns([1, 1])
@@ -673,7 +875,17 @@ def render_data_log_page() -> None:
         )
 
     st.subheader("Log Keputusan Dashboard")
-    st.dataframe(log_df.tail(100), use_container_width=True)
+    st.dataframe(log_df.tail(100), width="stretch")
+
+    st.subheader("Automation Cycle Log")
+    st.write("Log khusus untuk Simulated Automation / Digital Twin Mode.")
+    st.download_button(
+        "Download automation_cycle_log.csv",
+        data=automation_log_df.to_csv(index=False).encode("utf-8"),
+        file_name="automation_cycle_log.csv",
+        mime="text/csv",
+    )
+    st.dataframe(automation_log_df.tail(100), width="stretch")
 
     st.subheader("Dataset Explorer")
     df = load_dataset()
@@ -693,7 +905,152 @@ def render_data_log_page() -> None:
         ],
     )
     max_rows = st.slider("Jumlah baris preview", 10, 300, 50, step=10)
-    st.dataframe(df[selected_columns].head(max_rows), use_container_width=True)
+    st.dataframe(df[selected_columns].head(max_rows), width="stretch")
+
+
+def render_pump_panel(title: str, state: str) -> None:
+    color = "green" if state == "ON" else "red" if "BLOCKED" in state else "blue"
+    st.markdown(
+        f"""
+        <div class="pump-panel">
+            <div class="pump-title">{title}</div>
+            <div class="pump-state {color}">{state}</div>
+            <div style="color:#52606d;font-size:.85rem;margin-top:.3rem;">Virtual actuator only</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_automation_visuals(history: list[dict[str, Any]]) -> None:
+    if not history:
+        st.info("Belum ada siklus otomasi. Pilih skenario awal lalu tekan Start Simulation.")
+        return
+
+    latest = history[-1]
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        st.metric("pH", f"{latest['ph_after_simulated']:.3f}", f"{latest['delta_ph']:+.3f}")
+    with c2:
+        render_card("Water Quality", latest["predicted_water_quality_status"])
+    with c3:
+        render_card("Dosing Action", latest["predicted_dosing_action"])
+    with c4:
+        render_card("Safety", latest["safety_status"])
+    with c5:
+        render_card("Pump", latest["pump_status"])
+
+    p1, p2, p3 = st.columns([1, 1, 1.2])
+    with p1:
+        render_pump_panel("Virtual Acid Pump", latest["virtual_acid_pump"])
+    with p2:
+        render_pump_panel("Virtual Base Pump", latest["virtual_base_pump"])
+    with p3:
+        st.metric("Automation Status", latest["automation_status"])
+        st.caption(latest["dashboard_alert"])
+
+    history_df = pd.DataFrame(history)
+    chart_df = history_df.set_index("cycle")
+    chart_col1, chart_col2 = st.columns(2)
+    with chart_col1:
+        st.caption("pH history")
+        st.line_chart(chart_df[["ph_before", "ph_after_simulated"]])
+    with chart_col2:
+        st.caption("water_level_pct history")
+        st.line_chart(chart_df[["water_level_pct"]])
+
+    st.subheader("Automation Cycle Log")
+    st.dataframe(history_df.tail(50), width="stretch")
+
+
+def render_simulated_automation_page() -> None:
+    st.header("Simulated Automation / Digital Twin Automation Mode")
+    st.markdown(
+        """
+        <div class="warn-box">
+        Mode ini adalah simulasi otomasi berbasis digital twin. Sensor dan pompa yang ditampilkan adalah virtual,
+        bukan koneksi hardware fisik. Dashboard tetap proof of concept akademik dan belum tervalidasi sebagai
+        sistem kontrol lapangan.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.info(
+        "Alur real-time virtual: Virtual Sensor Reading -> ML Prediction -> Safety Rule Controller -> "
+        "Virtual Pump Decision -> Simulated Dosing -> Recheck pH -> Log."
+    )
+
+    selected_scenario = st.selectbox(
+        "Skenario awal",
+        list(PRESET_SCENARIOS.keys()),
+        key="automation_scenario_select",
+    )
+    ensure_automation_session_state(selected_scenario)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        interval_seconds = st.slider("Interval simulasi (detik)", 2, 10, 2, 1)
+    with c2:
+        total_cycles = st.slider("Jumlah siklus simulasi", 5, 50, 5, 1)
+
+    b1, b2, b3 = st.columns(3)
+    with b1:
+        start_clicked = st.button("Start Simulation", type="primary")
+    with b2:
+        stop_clicked = st.button("Stop Simulation")
+    with b3:
+        reset_clicked = st.button("Reset Simulation")
+
+    if reset_clicked:
+        init_automation_state(selected_scenario)
+        ensure_automation_log_file()
+        st.success("Automation history dan virtual sensor state sudah direset.")
+
+    if stop_clicked:
+        st.session_state["automation_running"] = False
+        st.warning("Stop flag diset. Jika simulasi sedang berjalan, siklus berikutnya akan berhenti pada rerun berikutnya.")
+
+    status_placeholder = st.empty()
+    visual_placeholder = st.empty()
+
+    if start_clicked:
+        init_automation_state(selected_scenario)
+        ensure_automation_log_file()
+        st.session_state["automation_running"] = True
+        for _ in range(total_cycles):
+            if not st.session_state.get("automation_running", False):
+                break
+
+            current_state = st.session_state["current_virtual_sensor_state"]
+            virtual_sensor_state = evolve_virtual_sensor_state(current_state, selected_scenario)
+            cycle_number = int(st.session_state["automation_cycle_count"]) + 1
+            cycle_result = build_automation_cycle_result(
+                selected_scenario,
+                cycle_number,
+                virtual_sensor_state,
+            )
+            st.session_state["automation_cycle_count"] = cycle_number
+            st.session_state["automation_history"].append(cycle_result)
+            append_automation_log(cycle_result)
+
+            with status_placeholder.container():
+                st.success(
+                    f"Cycle {cycle_number}/{total_cycles} selesai: "
+                    f"{cycle_result['automation_status']} | {cycle_result['dashboard_alert']}"
+                )
+            with visual_placeholder.container():
+                render_automation_visuals(st.session_state["automation_history"])
+            time.sleep(interval_seconds)
+
+        st.session_state["automation_running"] = False
+        st.success("Simulasi selesai sesuai jumlah siklus terkontrol.")
+
+    history = st.session_state.get("automation_history", [])
+    if not start_clicked:
+        render_automation_visuals(history)
+
+    with st.expander("Current virtual sensor state"):
+        st.dataframe(pd.DataFrame([st.session_state["current_virtual_sensor_state"]]), width="stretch")
 
 
 def route_page(menu: str) -> None:
@@ -701,6 +1058,8 @@ def route_page(menu: str) -> None:
         render_overview()
     elif menu == "Input Sensor & Simulasi":
         render_input_page()
+    elif menu == "Simulated Automation":
+        render_simulated_automation_page()
     elif menu == "Hasil Prediksi ML":
         render_prediction_page()
     elif menu == "Safety Rule & Status Pompa":
@@ -714,6 +1073,7 @@ def route_page(menu: str) -> None:
 def main() -> None:
     configure_page()
     ensure_log_file()
+    ensure_automation_log_file()
 
     st.sidebar.title("Aquaponic Dashboard")
     st.sidebar.caption("IoT - ML - MBSE | v3.1")
@@ -722,6 +1082,7 @@ def main() -> None:
         [
             "Overview Sistem",
             "Input Sensor & Simulasi",
+            "Simulated Automation",
             "Hasil Prediksi ML",
             "Safety Rule & Status Pompa",
             "Evaluasi Model",

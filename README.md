@@ -30,7 +30,8 @@ aquaponic_ml_dataset/
 |-- assets/
 |   `-- physical_architecture.png
 `-- logs/
-    `-- dashboard_decision_log.csv
+    |-- dashboard_decision_log.csv
+    `-- automation_cycle_log.csv
 ```
 
 Folder `logs/` dan file `dashboard_decision_log.csv` akan dibuat otomatis jika belum ada.
@@ -74,6 +75,9 @@ py -m streamlit run app.py
 
 6. **Data Log**
    Menampilkan log keputusan dashboard, tombol download CSV, dan dataset explorer sederhana.
+
+7. **Simulated Automation**
+   Menampilkan mode digital twin untuk simulasi otomasi end-to-end berbasis sensor virtual dan aktuator virtual.
 
 ## Fitur Input Model
 
@@ -129,6 +133,72 @@ Dashboard menyediakan preset:
 - `sensor_error_condition`
 
 Preset tersebut digunakan untuk acceptance test dan demonstrasi alur keputusan sistem.
+
+## Simulated Automation / Digital Twin Mode
+
+Menu **Simulated Automation** menjalankan simulasi end-to-end:
+
+```text
+Virtual Sensor Reading
+-> ML Prediction
+-> Safety Rule Controller
+-> Virtual Pump Decision
+-> Simulated Dosing
+-> Recheck pH
+-> Log
+```
+
+Mode ini menggunakan `st.session_state` untuk menyimpan:
+
+- `automation_history`
+- `current_virtual_sensor_state`
+- `latest_automation_result`
+- `automation_cycle_count`
+
+Kontrol yang tersedia:
+
+- Start Simulation
+- Stop Simulation
+- Reset Simulation
+- pilihan skenario awal
+- interval simulasi 2 sampai 10 detik
+- jumlah siklus 5 sampai 50 siklus
+
+Sensor yang ditampilkan adalah **virtual sensor**. Pompa yang ditampilkan adalah **virtual actuator**, bukan koneksi hardware fisik. Ketika safety lolos dan model merekomendasikan acid/base dosing, dashboard menampilkan Virtual Acid Pump atau Virtual Base Pump sebagai ON. Jika safety gagal, pompa virtual menjadi BLOCKED / OFF.
+
+Setiap siklus menyimpan:
+
+- `ph_before`
+- `ph_after_simulated`
+- `delta_ph`
+- `dosing_success`
+- status virtual pump
+- output ML
+- safety status
+
+Log otomasi disimpan ke:
+
+```text
+logs/automation_cycle_log.csv
+```
+
+Log keputusan biasa tetap disimpan ke:
+
+```text
+logs/dashboard_decision_log.csv
+```
+
+## Pengembangan Hardware Berikutnya
+
+Integrasi hardware nyata dapat dikembangkan sebagai tahap lanjutan melalui:
+
+- ESP32 atau Arduino sebagai pembaca sensor pH, suhu, dan level air.
+- MQTT atau HTTP API untuk mengirim data sensor ke dashboard/server.
+- Relay atau driver pompa untuk aktuator acid/base.
+- Safety interlock fisik terpisah dari model ML.
+- Kalibrasi sensor dan validasi dosing menggunakan data aquaponic aktual.
+
+Tahap hardware tersebut belum termasuk dalam dashboard ini. Dashboard saat ini hanya simulasi akademik dan digital twin proof of concept.
 
 ## Catatan
 
