@@ -232,6 +232,18 @@ Hardware readiness table menjelaskan rencana pengembangan:
 
 Safety Rule Controller tetap wajib sebelum Virtual Relay atau Virtual Pump ON. Jika `safety_status = safety_fail`, relay dan pompa virtual akan OFF/BLOCKED. Jika `safety_status = safety_pass` dan `pump_status = on`, barulah pompa virtual boleh ON.
 
+## Enhanced Visual Automation Layer
+
+Menu **Simulated Automation** juga dilengkapi visualisasi presentasi untuk memperlihatkan alur otomasi virtual secara lebih hidup:
+
+- **Live Automation Schematic**: menampilkan alur `Virtual Sensor -> Virtual ESP32 -> ML Prediction -> Safety Rule Controller -> Virtual Relay -> Virtual Acid/Base Pump -> Recheck pH -> Log`.
+- **Animated Virtual Pump Panel**: menampilkan status Virtual Acid Pump dan Virtual Base Pump sebagai `ON`, `OFF / Monitoring Only`, atau `BLOCKED / OFF`.
+- **Simulated Dosing Flow**: menampilkan pipa visual virtual dari Acid/Base Tank menuju Aquaponic Tank. Garis aliran bergerak hanya ketika pompa virtual ON dan safety rule lolos.
+- **pH Status Meter**: menampilkan `ph_before`, `ph_after_simulated`, `delta_ph`, target pH 6.8-7.0, dan status koreksi pH.
+- **Automation Timeline**: menampilkan tahapan Sensor Read, ESP32 Packet, ML Prediction, Safety Check, Pump Decision, Recheck pH, dan Log Saved.
+
+Seluruh animasi pompa, relay, pipa dosing, dan indikator aliran adalah **visualisasi virtual** untuk digital twin simulation. Visual ini bukan aktuasi hardware fisik dan tidak menunjukkan koneksi pompa nyata. Safety Rule Controller tetap menjadi syarat sebelum status Virtual Pump dapat berubah menjadi ON.
+
 ## Pengembangan Hardware Berikutnya
 
 Integrasi hardware nyata dapat dikembangkan sebagai tahap lanjutan melalui:

@@ -264,6 +264,258 @@ def configure_page() -> None:
             font-weight: 800;
             margin-top: .25rem;
         }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 rgba(31, 119, 180, .0); transform: translateY(0); }
+            50% { box-shadow: 0 0 20px rgba(31, 119, 180, .35); transform: translateY(-1px); }
+            100% { box-shadow: 0 0 0 rgba(31, 119, 180, .0); transform: translateY(0); }
+        }
+        @keyframes pipeFlow {
+            from { background-position: 0 0; }
+            to { background-position: 34px 0; }
+        }
+        .schematic-wrap,
+        .live-schematic {
+            display: flex;
+            align-items: stretch;
+            gap: .45rem;
+            flex-wrap: wrap;
+            margin: .4rem 0 1rem 0;
+        }
+        .schematic-step {
+            flex: 1 1 120px;
+            min-width: 116px;
+            border-radius: 8px;
+            border: 1px solid #d9e2ec;
+            padding: .7rem .65rem;
+            background: white;
+            min-height: 86px;
+        }
+        .schematic-kicker {
+            font-size: .68rem;
+            color: #52606d;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+        .schematic-title {
+            font-size: .88rem;
+            color: #102a43;
+            font-weight: 750;
+            line-height: 1.15rem;
+            margin-top: .22rem;
+        }
+        .schematic-status {
+            font-size: .76rem;
+            color: #52606d;
+            margin-top: .3rem;
+        }
+        .schematic-arrow {
+            align-self: center;
+            color: #9fb3c8;
+            font-weight: 800;
+        }
+        .flow-blue { border-color: #8fc5ff; background: #f2f8ff; }
+        .flow-green { border-color: #8ed6ad; background: #f2fbf6; }
+        .flow-gray { border-color: #d9e2ec; background: #f7f9fb; }
+        .flow-red { border-color: #f0a5a0; background: #fff4f2; }
+        .animated-pump-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .85rem;
+            margin: .4rem 0 1rem 0;
+        }
+        .animated-pump {
+            border-radius: 8px;
+            border: 1px solid #d9e2ec;
+            padding: 1rem;
+            min-height: 142px;
+            position: relative;
+            overflow: hidden;
+        }
+        .pump-active {
+            border-color: #4fb3d9;
+            background: linear-gradient(135deg, #eaf8ff 0%, #edfdf3 100%);
+            animation: pulseGlow 1.6s ease-in-out infinite;
+        }
+        .pump-off {
+            background: #f7f9fb;
+            border-color: #d9e2ec;
+        }
+        .pump-blocked {
+            background: #fff4f2;
+            border-color: #f0a5a0;
+        }
+        .animated-pump-title {
+            color: #52606d;
+            font-size: .78rem;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+        .animated-pump-state {
+            font-size: 1.55rem;
+            font-weight: 850;
+            margin-top: .35rem;
+            color: #0b2f5f;
+        }
+        .animated-pump-meta {
+            color: #52606d;
+            font-size: .85rem;
+            margin-top: .25rem;
+        }
+        .pump-flow-symbol {
+            font-size: 1.4rem;
+            letter-spacing: .2rem;
+            margin-top: .45rem;
+            color: #1f77b4;
+            font-weight: 800;
+        }
+        .dosing-flow {
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            background: #ffffff;
+            padding: .95rem;
+            margin-bottom: 1rem;
+        }
+        .flow-row {
+            display: grid;
+            grid-template-columns: minmax(100px, 1fr) minmax(50px, .55fr) minmax(110px, 1fr) minmax(50px, .55fr) minmax(130px, 1fr);
+            gap: .6rem;
+            align-items: center;
+            margin: .55rem 0;
+        }
+        .flow-node {
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            background: #f7f9fb;
+            padding: .65rem;
+            text-align: center;
+            font-weight: 750;
+            color: #102a43;
+        }
+        .flow-node.active {
+            border-color: #8ed6ad;
+            background: #f2fbf6;
+            color: #1b7f4c;
+        }
+        .flow-node.blocked {
+            border-color: #f0a5a0;
+            background: #fff4f2;
+            color: #b42318;
+        }
+        .flow-line {
+            height: 10px;
+            border-radius: 999px;
+            background: #cbd5df;
+            position: relative;
+        }
+        .flow-line.active-acid {
+            background: repeating-linear-gradient(90deg, #1f77b4 0, #1f77b4 13px, #a8def5 13px, #a8def5 24px);
+            animation: pipeFlow .8s linear infinite;
+        }
+        .flow-line.active-base {
+            background: repeating-linear-gradient(90deg, #1b7f4c 0, #1b7f4c 13px, #b8e5cc 13px, #b8e5cc 24px);
+            animation: pipeFlow .8s linear infinite;
+        }
+        .flow-line.blocked {
+            background: repeating-linear-gradient(90deg, #b42318 0, #b42318 10px, #f0a5a0 10px, #f0a5a0 20px);
+        }
+        .ph-meter {
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            background: #ffffff;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .ph-meter-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: .65rem;
+            margin-bottom: .85rem;
+        }
+        .ph-stat {
+            background: #f7f9fb;
+            border-radius: 8px;
+            padding: .65rem;
+            border: 1px solid #d9e2ec;
+        }
+        .ph-stat-label {
+            font-size: .72rem;
+            color: #52606d;
+            text-transform: uppercase;
+        }
+        .ph-stat-value {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #102a43;
+        }
+        .ph-track {
+            position: relative;
+            height: 18px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #b42318 0%, #c45b16 20%, #b98700 38%, #1b7f4c 48%, #1b7f4c 55%, #b98700 68%, #c45b16 82%, #b42318 100%);
+            overflow: hidden;
+        }
+        .ph-marker {
+            position: absolute;
+            top: -5px;
+            width: 4px;
+            height: 28px;
+            border-radius: 3px;
+            background: #0b2f5f;
+            box-shadow: 0 0 0 2px #ffffff;
+        }
+        .ph-target-band {
+            position: absolute;
+            top: 0;
+            height: 18px;
+            background: rgba(255, 255, 255, .38);
+            border-left: 2px solid #ffffff;
+            border-right: 2px solid #ffffff;
+        }
+        .ph-meter-note {
+            color: #52606d;
+            font-size: .86rem;
+            margin-top: .45rem;
+        }
+        .automation-timeline {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: .5rem;
+            margin: .4rem 0 1rem 0;
+        }
+        .timeline-step {
+            border-radius: 8px;
+            border: 1px solid #d9e2ec;
+            padding: .65rem .5rem;
+            background: #f7f9fb;
+            min-height: 76px;
+        }
+        .timeline-number {
+            font-size: .7rem;
+            color: #52606d;
+            font-weight: 750;
+        }
+        .timeline-title {
+            font-size: .85rem;
+            color: #102a43;
+            font-weight: 800;
+            line-height: 1.1rem;
+            margin-top: .2rem;
+        }
+        .timeline-pass { background: #f2fbf6; border-color: #8ed6ad; }
+        .timeline-fail { background: #fff4f2; border-color: #f0a5a0; }
+        .timeline-neutral { background: #f2f8ff; border-color: #8fc5ff; }
+        .timeline-off { background: #f7f9fb; border-color: #d9e2ec; }
+        @media (max-width: 900px) {
+            .animated-pump-grid,
+            .ph-meter-grid,
+            .automation-timeline {
+                grid-template-columns: 1fr;
+            }
+            .flow-row {
+                grid-template-columns: 1fr;
+            }
+            .schematic-arrow { display: none; }
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -940,6 +1192,220 @@ def render_pump_panel(title: str, state: str) -> None:
     )
 
 
+def schematic_status_class(status: str, default: str = "flow-blue") -> str:
+    if status == "safety_pass" or status == "on":
+        return "flow-green"
+    if status == "safety_fail" or status == "blocked":
+        return "flow-red"
+    if status == "off":
+        return "flow-gray"
+    return default
+
+
+def render_live_automation_schematic(latest: dict[str, Any]) -> None:
+    """Render the virtual end-to-end automation flow without changing control logic."""
+    safety_class = schematic_status_class(str(latest["safety_status"]))
+    pump_class = schematic_status_class(str(latest["pump_status"]))
+    sensor_class = "flow-red" if latest["sensor_status"] != "valid" else "flow-blue"
+    recheck_class = "flow-green" if latest.get("dosing_success") else "flow-gray"
+    steps = [
+        ("01", "Virtual Sensor", f"pH {float(latest['ph_after_simulated']):.2f}", sensor_class),
+        ("02", "Virtual ESP32", str(latest.get("data_packet_id", "-")), "flow-blue"),
+        ("03", "ML Prediction", str(latest["predicted_dosing_action"]), "flow-blue"),
+        ("04", "Safety Rule Controller", str(latest["safety_status"]), safety_class),
+        ("05", "Virtual Relay", str(latest["pump_status"]).upper(), pump_class),
+        ("06", "Virtual Acid/Base Pump", str(latest["automation_status"]), pump_class),
+        ("07", "Recheck pH", f"delta {float(latest['delta_ph']):+.3f}", recheck_class),
+        ("08", "Log", "Cycle saved" if latest.get("cycle", 0) else "Waiting", "flow-blue"),
+    ]
+    parts = []
+    for index, (kicker, title, status, css_class) in enumerate(steps):
+        parts.append(
+            f'<div class="schematic-step {css_class}">'
+            f'<div class="schematic-kicker">{kicker}</div>'
+            f'<div class="schematic-title">{title}</div>'
+            f'<div class="schematic-status">{status}</div>'
+            "</div>"
+        )
+        if index < len(steps) - 1:
+            parts.append('<div class="schematic-arrow">-&gt;</div>')
+    html_schematic = (
+        '<div class="schematic-wrap">'
+        f"{''.join(parts)}"
+        "</div>"
+        '<div class="ph-meter-note">'
+        "Virtual Sensor &rarr; Virtual ESP32 &rarr; ML Prediction &rarr; Safety Rule Controller &rarr; "
+        "Virtual Relay &rarr; Virtual Pump &rarr; Recheck pH &rarr; Log"
+        "</div>"
+    )
+    st.subheader("Live Automation Schematic")
+    st.markdown(html_schematic, unsafe_allow_html=True)
+
+
+def pump_panel_css(state: str) -> tuple[str, str, str]:
+    if state == "ON":
+        return "pump-active", "ON", "~~~"
+    if "BLOCKED" in state:
+        return "pump-blocked", "BLOCKED / OFF", "!"
+    return "pump-off", "OFF / Monitoring Only", "-"
+
+
+def render_animated_virtual_pump_panel(latest: dict[str, Any]) -> None:
+    acid_css, acid_text, acid_symbol = pump_panel_css(str(latest["virtual_acid_pump"]))
+    base_css, base_text, base_symbol = pump_panel_css(str(latest["virtual_base_pump"]))
+    st.subheader("Animated Virtual Pump Panel")
+    st.markdown(
+        f"""
+        <div class="animated-pump-grid">
+            <div class="animated-pump {acid_css}">
+                <div class="animated-pump-title">Virtual Acid Pump</div>
+                <div class="animated-pump-state">ACID PUMP {acid_text}</div>
+                <div class="animated-pump-meta">Virtual actuator only - No physical hardware connected</div>
+                <div class="pump-flow-symbol">{acid_symbol}</div>
+            </div>
+            <div class="animated-pump {base_css}">
+                <div class="animated-pump-title">Virtual Base Pump</div>
+                <div class="animated-pump-state">BASE PUMP {base_text}</div>
+                <div class="animated-pump-meta">Virtual actuator only - No physical hardware connected</div>
+                <div class="pump-flow-symbol">{base_symbol}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_animated_dosing_flow(latest: dict[str, Any]) -> None:
+    acid_on = latest["virtual_acid_pump"] == "ON"
+    base_on = latest["virtual_base_pump"] == "ON"
+    blocked = latest["pump_status"] == "blocked"
+    acid_line = "active-acid" if acid_on else "blocked" if blocked else ""
+    base_line = "active-base" if base_on else "blocked" if blocked else ""
+    acid_node = "active" if acid_on else "blocked" if blocked else ""
+    base_node = "active" if base_on else "blocked" if blocked else ""
+    tank_node = "active" if latest["pump_status"] == "on" else "blocked" if blocked else ""
+    st.subheader("Animated Dosing Flow")
+    st.markdown(
+        f"""
+        <div class="dosing-flow">
+            <div class="ph-meter-note">Simulated dosing flow - virtual actuator only - No physical hardware connected.</div>
+            <div class="flow-row">
+                <div class="flow-node {acid_node}">Acid Tank</div>
+                <div class="flow-line {acid_line}"></div>
+                <div class="flow-node {acid_node}">Acid Pump</div>
+                <div class="flow-line {acid_line}"></div>
+                <div class="flow-node {tank_node}">Aquaponic Tank</div>
+            </div>
+            <div class="flow-row">
+                <div class="flow-node {base_node}">Base Tank</div>
+                <div class="flow-line {base_line}"></div>
+                <div class="flow-node {base_node}">Base Pump</div>
+                <div class="flow-line {base_line}"></div>
+                <div class="flow-node {tank_node}">Aquaponic Tank</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def ph_distance_to_target(ph_value: float) -> float:
+    if 6.8 <= ph_value <= 7.0:
+        return 0.0
+    return min(abs(ph_value - 6.8), abs(ph_value - 7.0))
+
+
+def ph_meter_status(ph_before: float, ph_after: float, pump_status: str) -> str:
+    before_distance = ph_distance_to_target(ph_before)
+    after_distance = ph_distance_to_target(ph_after)
+    if after_distance < before_distance - 0.005:
+        return "toward target"
+    if pump_status == "off" or abs(ph_after - ph_before) <= 0.02:
+        return "stable"
+    return "needs monitoring"
+
+
+def ph_to_percent(ph_value: float) -> float:
+    return clamp((ph_value - 5.5) / (8.5 - 5.5) * 100, 0, 100)
+
+
+def render_ph_status_meter(latest: dict[str, Any]) -> None:
+    ph_before = float(latest["ph_before"])
+    ph_after = float(latest["ph_after_simulated"])
+    delta_ph = float(latest["delta_ph"])
+    status = ph_meter_status(ph_before, ph_after, str(latest["pump_status"]))
+    marker_pct = ph_to_percent(ph_after)
+    target_left = ph_to_percent(6.8)
+    target_width = ph_to_percent(7.0) - target_left
+    st.subheader("pH Status Meter")
+    st.markdown(
+        f"""
+        <div class="ph-meter">
+            <div class="ph-meter-grid">
+                <div class="ph-stat">
+                    <div class="ph-stat-label">ph_before</div>
+                    <div class="ph-stat-value">{ph_before:.3f}</div>
+                </div>
+                <div class="ph-stat">
+                    <div class="ph-stat-label">ph_after_simulated</div>
+                    <div class="ph-stat-value">{ph_after:.3f}</div>
+                </div>
+                <div class="ph-stat">
+                    <div class="ph-stat-label">delta_ph</div>
+                    <div class="ph-stat-value">{delta_ph:+.3f}</div>
+                </div>
+                <div class="ph-stat">
+                    <div class="ph-stat-label">target 6.8-7.0</div>
+                    <div class="ph-stat-value">{status}</div>
+                </div>
+            </div>
+            <div class="ph-track">
+                <div class="ph-target-band" style="left:{target_left:.2f}%; width:{target_width:.2f}%;"></div>
+                <div class="ph-marker" style="left:{marker_pct:.2f}%;"></div>
+            </div>
+            <div class="ph-meter-note">Scale shown from pH 5.5 to 8.5. The highlighted band marks the simulated target pH 6.8-7.0.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_automation_timeline(latest: dict[str, Any]) -> None:
+    safety_failed = latest["safety_status"] == "safety_fail"
+    pump_on = latest["pump_status"] == "on"
+    pump_off = latest["pump_status"] == "off"
+    safety_class = "timeline-fail" if safety_failed else "timeline-pass" if latest["safety_status"] == "safety_pass" else "timeline-off"
+    pump_class = "timeline-fail" if safety_failed else "timeline-pass" if pump_on else "timeline-off" if pump_off else "timeline-neutral"
+    recheck_class = "timeline-pass" if latest.get("dosing_success") else "timeline-off"
+    steps = [
+        ("01", "Sensor Read", "timeline-neutral"),
+        ("02", "ESP32 Packet", "timeline-neutral"),
+        ("03", "ML Prediction", "timeline-neutral"),
+        ("04", "Safety Check", safety_class),
+        ("05", "Pump Decision", pump_class),
+        ("06", "Recheck pH", recheck_class),
+        ("07", "Log Saved", "timeline-neutral"),
+    ]
+    timeline_html = "".join(
+        f"""
+        <div class="timeline-step {css_class}">
+            <div class="timeline-number">{number}</div>
+            <div class="timeline-title">{title}</div>
+        </div>
+        """
+        for number, title, css_class in steps
+    )
+    st.subheader("Automation Timeline")
+    st.markdown(
+        f"""
+        <div class="automation-timeline">
+            {timeline_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_virtual_hardware_layer(latest: dict[str, Any]) -> None:
     st.subheader("Virtual Hardware Layer")
     st.caption(
@@ -1053,15 +1519,7 @@ def build_idle_automation_snapshot() -> dict[str, Any]:
     }
 
 
-def render_automation_visuals(history: list[dict[str, Any]]) -> None:
-    if not history:
-        st.info("Belum ada siklus otomasi. Pilih skenario awal lalu tekan Start Simulation.")
-        idle_snapshot = build_idle_automation_snapshot()
-        render_virtual_hardware_layer(idle_snapshot)
-        render_simulated_dosing_panel(idle_snapshot)
-        return
-
-    latest = history[-1]
+def render_automation_status_cards(latest: dict[str, Any]) -> None:
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         st.metric("pH", f"{latest['ph_after_simulated']:.3f}", f"{latest['delta_ph']:+.3f}")
@@ -1074,17 +1532,40 @@ def render_automation_visuals(history: list[dict[str, Any]]) -> None:
     with c5:
         render_card("Pump", latest["pump_status"])
 
-    p1, p2, p3 = st.columns([1, 1, 1.2])
-    with p1:
-        render_pump_panel("Virtual Acid Pump", latest["virtual_acid_pump"])
-    with p2:
-        render_pump_panel("Virtual Base Pump", latest["virtual_base_pump"])
-    with p3:
+
+def render_automation_visuals(history: list[dict[str, Any]], presentation_mode: bool = False) -> None:
+    if not history:
+        st.info("Belum ada siklus otomasi. Pilih skenario awal lalu tekan Start Simulation.")
+        idle_snapshot = build_idle_automation_snapshot()
+        if presentation_mode:
+            render_automation_status_cards(idle_snapshot)
+        render_live_automation_schematic(idle_snapshot)
+        render_animated_virtual_pump_panel(idle_snapshot)
+        render_animated_dosing_flow(idle_snapshot)
+        if not presentation_mode:
+            render_virtual_hardware_layer(idle_snapshot)
+            render_simulated_dosing_panel(idle_snapshot)
+        render_ph_status_meter(idle_snapshot)
+        render_automation_timeline(idle_snapshot)
+        return
+
+    latest = history[-1]
+    render_automation_status_cards(latest)
+    if not presentation_mode:
         st.metric("Automation Status", latest["automation_status"])
         st.caption(latest["dashboard_alert"])
+    render_live_automation_schematic(latest)
+    if not presentation_mode:
+        render_virtual_hardware_layer(latest)
+    render_animated_virtual_pump_panel(latest)
+    render_animated_dosing_flow(latest)
+    if not presentation_mode:
+        render_simulated_dosing_panel(latest)
+    render_ph_status_meter(latest)
+    render_automation_timeline(latest)
 
-    render_virtual_hardware_layer(latest)
-    render_simulated_dosing_panel(latest)
+    if presentation_mode:
+        return
 
     history_df = pd.DataFrame(history)
     chart_df = history_df.set_index("cycle")
@@ -1116,6 +1597,19 @@ def render_simulated_automation_page() -> None:
         "Alur real-time virtual: Virtual Sensor -> Virtual ESP32 -> ML Prediction -> Safety Rule Controller -> "
         "Virtual Relay -> Virtual Pump -> Recheck pH -> Log."
     )
+
+    presentation_mode = st.toggle(
+        "Presentation Mode",
+        value=False,
+        help=(
+            "Aktifkan untuk tampilan ringkas yang cocok untuk screenshot PPT. "
+            "Detail teknis tetap tersedia saat mode ini dimatikan."
+        ),
+    )
+    if presentation_mode:
+        st.caption(
+            "Presentation Mode aktif: detail virtual hardware, readiness table, log siklus, dan tabel teknis panjang disembunyikan."
+        )
 
     selected_scenario = st.selectbox(
         "Skenario awal",
@@ -1176,7 +1670,10 @@ def render_simulated_automation_page() -> None:
                     f"{cycle_result['automation_status']} | {cycle_result['dashboard_alert']}"
                 )
             with visual_placeholder.container():
-                render_automation_visuals(st.session_state["automation_history"])
+                render_automation_visuals(
+                    st.session_state["automation_history"],
+                    presentation_mode=presentation_mode,
+                )
             time.sleep(interval_seconds)
 
         st.session_state["automation_running"] = False
@@ -1184,10 +1681,11 @@ def render_simulated_automation_page() -> None:
 
     history = st.session_state.get("automation_history", [])
     if not start_clicked:
-        render_automation_visuals(history)
+        render_automation_visuals(history, presentation_mode=presentation_mode)
 
-    with st.expander("Current virtual sensor state"):
-        st.dataframe(pd.DataFrame([st.session_state["current_virtual_sensor_state"]]), width="stretch")
+    if not presentation_mode:
+        with st.expander("Current virtual sensor state"):
+            st.dataframe(pd.DataFrame([st.session_state["current_virtual_sensor_state"]]), width="stretch")
 
 
 def route_page(menu: str) -> None:
